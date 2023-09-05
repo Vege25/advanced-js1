@@ -1,23 +1,16 @@
-'use strict';
+import {restaurantRow, restaurantModal} from './components.js';
+import {apiUrl} from './variables.js';
+import {fetchData} from './utils.js';
+
 const modal = document.querySelector('dialog');
 modal.addEventListener('click', () => {
   modal.close();
 });
 
-const apiUrl = 'https://sodexo-webscrape-r73sdlmfxa-lz.a.run.app/api/v1';
 const positionOptions = {
   enableHighAccuracy: true,
   timeout: 5000,
   maximumAge: 0,
-};
-
-const fetchData = async (url, options = {}) => {
-  const response = await fetch(url, options);
-  if (!response.ok) {
-    throw new Error(`Error ${response.status} occured`);
-  }
-  const json = response.json();
-  return json;
 };
 
 const calculateDistance = (x1, y1, x2, y2) => {
@@ -47,13 +40,7 @@ const success = async pos => {
     });
 
     for (const restaurant of restaurants) {
-      const tr = document.createElement('tr');
-      const name = document.createElement('td');
-      name.innerText = restaurant.name;
-      const address = document.createElement('td');
-      address.innerText = restaurant.address;
-      tr.appendChild(name);
-      tr.appendChild(address);
+      const tr = restaurantRow(restaurant);
       document.querySelector('table').appendChild(tr);
       tr.addEventListener('click', async () => {
         try {
@@ -62,39 +49,18 @@ const success = async pos => {
           for (const high of allHighs) {
             high.classList.remove('highlight');
           }
+
           // add highlight
           tr.classList.add('highlight');
-          // add restaurant data to modal
-          modal.innerHTML = '';
-          const html = `<h3>${restaurant.name}</h3>
-      <p>${restaurant.company}</p>
-      <p>${restaurant.address} ${restaurant.postalCode} ${restaurant.city}</p>
-      <p>${restaurant.phone}</p>`;
-          modal.insertAdjacentHTML('beforeend', html);
+
           // fetch menu
           const menu = await fetchData(
             apiUrl + `/restaurants/daily/${restaurant._id}/fi`
           );
-          console.log(menu);
-          let menuHtml = `
-      <table>
-        <tr>
-          <th>Course</th>
-          <th>Diet</th>
-          <th>Price</th>
-        </tr>
-      `;
-          for (const course of menu.courses) {
-            menuHtml += `
-        <tr>
-          <td>${course.name}</td>
-          <td>${course.diets || ' - '}</td>
-          <td>${course.price || ' - '}</td>
-        </tr>
-        `;
-          }
-          menuHtml += '</table>';
-          modal.insertAdjacentHTML('beforeend', menuHtml);
+          modal.insertAdjacentHTML(
+            'beforeend',
+            restaurantModal(restaurant, menu)
+          );
           modal.showModal();
         } catch (error) {
           alert(error.message);
